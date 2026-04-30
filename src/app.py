@@ -8,6 +8,36 @@ st.set_page_config(
     page_icon="🎯",
     layout="wide"
 )
+st.markdown("""
+<style>
+.stApp {
+    background-image: url("https://www.hltv.org/img/static/team/logo/7020");
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+.stApp::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 0;
+}
+
+.main > div {
+    position: relative;
+    z-index: 1;
+}
+section[data-testid="stSidebar"] {
+    background-color: #111111;
+}
+</style>
+""", unsafe_allow_html=True)
+
 
 @st.cache_data
 def cargar_datos():
@@ -70,6 +100,8 @@ tournament_type = st.sidebar.selectbox(
     "Tournament Type",
     ["All Tournaments", "Majors Only", "IEM Only", "BLAST Only"]
 )
+years = ["All Years"] + sorted(df_spirit["Event"].str.extract(r"(\d{4})")[0].dropna().unique().tolist(), reverse=True)
+selected_year = st.sidebar.selectbox("Year", years)
 
 def filtrar_torneos(df, tipo):
     if tipo == "Majors Only":
@@ -81,6 +113,8 @@ def filtrar_torneos(df, tipo):
     return df
 
 df_filtrado = filtrar_torneos(df_spirit, tournament_type)
+if selected_year != "All Years":
+    df_filtrado = df_filtrado[df_filtrado["Event"].str.contains(selected_year)]
 df_plot = df_filtrado.iloc[::-1].reset_index(drop=True)
 df_plot["#"] = range(1, len(df_plot) + 1)
 
