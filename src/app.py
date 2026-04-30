@@ -166,3 +166,101 @@ fig_year.add_hline(y=1.0, line_dash="dash", line_color="gray")
 fig_year.update_traces(textposition="outside")
 fig_year.update_layout(height=350, showlegend=False)
 st.plotly_chart(fig_year, use_container_width=True)
+
+st.divider()
+
+# =============================================
+# GOAT COMPARISON SECTION
+# =============================================
+
+st.header("🐐 The GOAT Debate — donk vs s1mple vs ZywOo")
+st.markdown("""
+Comparing donk's career stats against the two most debated GOATs in CS history — 
+**s1mple** and **ZywOo** — with one key difference: donk achieved this in just **2 years**.
+""")
+
+@st.cache_data
+def cargar_comparativa():
+    def procesar(path, nombre):
+        df = pd.read_csv(path, skiprows=2)
+        df.columns = ["Result", "Event", "Team", "Maps", "KPR_DPR", "plus_minus", "Rating"]
+        df["Rating"] = df["Rating"].astype(str).str.replace("*", "", regex=False)
+        df["Rating"] = pd.to_numeric(df["Rating"], errors="coerce")
+        df["Maps"] = pd.to_numeric(df["Maps"], errors="coerce")
+        df[["KPR", "DPR"]] = df["KPR_DPR"].str.split(" - ", expand=True).astype(float)
+        df["Player"] = nombre
+        df["Won"] = df["Result"].str.strip() == "1st"
+        return df.dropna(subset=["Rating"])
+    
+    donk = procesar("data/donk_stats.csv", "donk")
+    s1mple = procesar("data/s1mple_stats.csv", "s1mple")
+    zywoo = procesar("data/zywOo_stats.csv", "ZywOo")
+    
+    return pd.concat([donk, s1mple, zywoo], ignore_index=True)
+
+df_goat = cargar_comparativa()
+
+# Stats de resumen por jugador
+summary = df_goat.groupby("Player").agg(
+    Tournaments=("Event", "count"),
+    Maps=("Maps", "sum"),
+    Avg_Rating=("Rating", "mean"),
+    Avg_KPR=("KPR", "mean"),
+    Avg_DPR=("DPR", "mean"),
+    Wins=("Won", "sum")
+).reset_index()
+summary["Avg_Rating"] = summary["Avg_Rating"].round(2)
+summary["Avg_KPR"] = summary["Avg_KPR"].round(2)
+summary["Avg_DPR"] = summary["Avg_DPR"].round(2)
+summary["Win Rate"] = (summary["Wins"] / summary["Tournaments"] * 100).round(1)
+
+# KPIs por jugador
+col1, col2, col3 = st.columns(3)
+
+photos = {
+    "donk": "assets/donk_player.png",
+    "s1mple": "assets/s1mple_player.png",
+    "ZywOo": "assets/zywoo_player.png"
+}
+
+for col, player in zip([col1, col2, col3], ["donk", "s1mple", "ZywOo"]):
+    row = summary[summary["Player"] == player].iloc[0]
+    with col:
+        st.image(photos[player], width=200)
+        st.markdown(f"### {'🥇' if player == 'donk' else '🏅'} {player}")
+        st.metric("Avg Rating", row["Avg_Rating"])
+        st.metric("Tournaments", int(row["Tournaments"]))
+        st.metric("Maps Played", int(row["Maps"]))
+        st.metric("Tournament Win Rate", f"{row['Win Rate']}%")
+
+st.divider()
+
+# Comparativa de Rating promedio
+st.subheader("📊 Average Rating Comparison")
+colors = {"donk": "#FF4B4B", "s1mple": "#4B9EFF", "ZywOo": "#00CC44"}
+fig_comp = px.bar(
+    summary,
+    x="Player",
+    y="Avg_Rating",
+    color="Player",
+    text="Avg_Rating",
+    color_discrete_map=colors
+)
+fig_comp.add_hline(y=1.0, line_dash="dash", line_color="gray")
+fig_comp.update_traces(textposition="outside")
+fig_comp.update_layout(height=400, showlegend=False, yaxis_range=[0.9, 1.5])
+st.plotly_chart(fig_comp, use_container_width=True)
+
+st.divider()
+
+# Distribucion de ratings
+st.subheader("📈 Rating Distribution — Who Peaks Higher?")
+fig_box = px.box(
+    df_goat,
+    x="Player",
+    y="Rating",
+    color="Player",
+    color_discrete_map=colors
+)
+fig_box.update_layout(height=400, showlegend=False)
+st.plotly_chart(fig_box, use_container_width=True)
