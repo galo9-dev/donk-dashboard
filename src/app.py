@@ -298,3 +298,11 @@ fig_box = px.box(
 )
 fig_box.update_layout(height=400, showlegend=False)
 st.plotly_chart(fig_box, use_container_width=True)
+
+st.divider()
+st.markdown("""
+<div style='text-align: center; color: #666666; font-size: 12px;'>
+    Data sourced from <a href='https://www.hltv.org' target='_blank' style='color: #FF4B4B;'>HLTV.org</a> 
+    · Built with Python & Streamlit · 2026
+</div>
+""", unsafe_allow_html=True)
